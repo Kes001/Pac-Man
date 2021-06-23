@@ -96,7 +96,8 @@ void Game (HDC fon)
 
         pacman.Move (fon);
 
-        //цикл для всех точек EatDots (struct PacMan* pacman, struct Dot* dot)
+        //loop for all dots EatDots (struct PacMan* pacman, struct Dot* dot)
+        //need array of dots
         if (DotDistance (pacman, Dot1) <= pacman.r + Dot1.r && Dot1.visible)
             {
             Dot1.visible = false;
@@ -139,7 +140,7 @@ void PacMan::Move (HDC fon)
     if (direction == 3) y -= 2;
     if (direction == 4) y += 2;
 
-    bool wall = false; //не находить на стенки
+    bool wall = false; //find a wall
     COLORREF color2 = txGetPixel (x, y, fon);
 
     for (int i = x - r; i <= x + r; i++)
@@ -223,7 +224,6 @@ void PacMan::Draw ()
         txPolygon (mouth, 4);
         }
     txSleep(10);
-
     }
 
 //-------------------------------------------------------------
@@ -252,58 +252,7 @@ void ScoreDraw (int score)
 
 void Collision (struct PacMan* pacman, struct Enemy* enemy)
     {
-    /*ball1 -> vx = -ball1 -> vx;
-    ball1 -> vy = -ball1 -> vy;
-    ball2 -> vx = -ball2 -> vx;
-    ball2 -> vy = -ball2 -> vy;
-
-
-    double Dx = ball1 -> x - ball2 -> x;
-    double Dy = ball1 -> y - ball2 -> y;
-    double d = Distance (*ball1, *ball2);
-    double s = Dx/d; // sin
-    double e = Dy/d; // cos
-
-    double Vn1 = (ball2 -> vx)*dt*s + (ball2 -> vy)*dt*e;
-    double Vn2 = (ball1 -> vx)*dt*s + (ball1 -> vy)*dt*e;
-
-    double inside = (ball1 -> r + ball2 -> x - d) / (Vn1 - Vn2);
-    if (inside >  0.6) inside =  0.6;
-    if (inside < -0.6) inside = -0.6;
-
-    ball1 -> x -= ROUND((ball1 -> vx)*dt*inside);
-    ball1 -> y -= ROUND((ball1 -> vy)*dt*inside);
-    ball2 -> x -= ROUND((ball2 -> vx)*dt*inside);
-    ball2 -> y -= ROUND((ball2 -> vy)*dt*inside);
-
-    Dx = ball1 -> x - ball2 -> x;
-    Dy = ball1 -> y - ball2 -> y;
-    d = Distance (*ball1, *ball2);
-    s = Dx/d;
-    e = Dy/d;
-
-    Vn1 = (ball2 -> vx)*dt*s + (ball2 -> vy)*dt*e;
-    Vn2 = (ball1 -> vx)*dt*s + (ball1 -> vy)*dt*e;
-
-    double Vt1 = -(ball2 -> vx)*dt*e + (ball2 -> vy)*dt*s;
-    double Vt2 = -(ball1 -> vx)*dt*e + (ball1 -> vy)*dt*s;
-
-    double o = Vn2;
-    Vn2 = Vn1;
-    Vn1 = o;
-
-    ball1 -> vx = ROUND(Vn2*s - Vt2*e);
-    ball1 -> vy = ROUND(Vn2*e + Vt2*s);
-    ball2 -> vx = ROUND(Vn1*s - Vt1*e);
-    ball2 -> vy = ROUND(Vn1*e + Vt1*s);
-
-    ball1 -> x += ROUND((ball1 -> vx)*dt*inside);
-    ball1 -> y += ROUND((ball1 -> vy)*dt*inside);
-    ball2 -> x += ROUND((ball2 -> vx)*dt*inside);
-    ball2 -> y += ROUND((ball2 -> vy)*dt*inside);
-    */
-
-    txPlaySound ("sounds/ball_sound.wav");
+    //txPlaySound ("sounds/.wav");
     }
 
 //-------------------------------------------------------------
