@@ -1,7 +1,5 @@
 #include "TXLib.h"
 
-void Game  (HDC fon);
-
 struct Dot
     {
     int x, y;
@@ -23,6 +21,7 @@ struct PacMan
     COLORREF fillcolor;
 
     int direction;
+    int mouth_open;
 
     void Draw ();
     void Move (HDC fon);
@@ -33,8 +32,8 @@ struct Enemy
     int x, y;
     int direction;
 
-    void Draw ();
-    void Move ();
+    void Draw (HDC enemy);
+    void Move (HDC fon);
     };
 
 struct ControlType
@@ -42,6 +41,7 @@ struct ControlType
     int key_left, key_right, key_up, key_down;
     };
 
+void Game  ();
 void Collision     (struct PacMan* pacman, struct Enemy* enemy);
 void EatDots       (struct PacMan* pacman, struct Dot* dot);
 void ControlPacMan (struct PacMan* pacman, struct ControlType player);
@@ -55,19 +55,22 @@ int main()
     {
     txCreateWindow (960, 600);
 
-    HDC fon  = txLoadImage ("images\\map.bmp");
-
-    Game (fon);
+    Game ();
 
     return 0;
     }
 
 //-------------------------------------------------------------
 
-void Game (HDC fon)
+void Game ()
     {
-    PacMan pacman = { 300, 300, 20, TX_YELLOW, TX_YELLOW, 1 };
+    HDC fon  = txLoadImage ("images\\map.bmp");
+    HDC enemy1_look = txLoadImage ("images\\enemy.bmp");
 
+    PacMan pacman = { 250, 300, 20, TX_YELLOW, TX_YELLOW, 1, 0 };
+    Enemy  enemy1 = { 460, 200, 1 };
+
+    // array of dots
     Dot Dot1 = {  50, 100, 10, true, TX_LIGHTRED, TX_RED };
     Dot Dot2 = { 100, 150, 10, true, TX_LIGHTRED, TX_RED };
     Dot Dot3 = { 200, 300, 10, true, TX_LIGHTRED, TX_RED };
@@ -75,7 +78,6 @@ void Game (HDC fon)
     ControlType player = {VK_RIGHT, VK_LEFT, VK_UP, VK_DOWN};
 
     int lives = 3;
-    //double ax = 0.0, ay = 0.0;
     int score = 0;
 
     while (!txGetAsyncKeyState (VK_ESCAPE))
@@ -91,13 +93,16 @@ void Game (HDC fon)
         Dot3.Draw ();
 
         pacman.Draw ();
+        enemy1.Draw (enemy1_look);
 
         ControlPacMan (&pacman, player);
 
         pacman.Move (fon);
+        enemy1.Move (fon);
 
         //loop for all dots EatDots (struct PacMan* pacman, struct Dot* dot)
         //need array of dots
+
         if (DotDistance (pacman, Dot1) <= pacman.r + Dot1.r && Dot1.visible)
             {
             Dot1.visible = false;
@@ -119,6 +124,7 @@ void Game (HDC fon)
         }
 
     txDeleteDC (fon);
+    txDeleteDC (enemy1_look);
     }
 
 //-------------------------------------------------------------
@@ -135,20 +141,18 @@ void PacMan::Move (HDC fon)
     int oldx = x;
     int oldy = y;
 
-    if (direction == 1) x -= 2;
-    if (direction == 2) x += 2;
-    if (direction == 3) y -= 2;
-    if (direction == 4) y += 2;
+    if (direction == 1) x -= 1;
+    if (direction == 2) x += 1;
+    if (direction == 3) y -= 1;
+    if (direction == 4) y += 1;
 
     bool wall = false; //find a wall
-    COLORREF color2 = txGetPixel (x, y, fon);
 
-    for (int i = x - r; i <= x + r; i++)
+    for (int i = x - r; i <= x + r; i += 5)
         {
-        for (int j = y - r; j <= y + r; j++)
+        for (int j = y - r; j <= y + r; j += 5)
             {
-            color2 = txGetPixel (i, j, fon);
-            if (color2 != RGB (0, 0, 0))
+            if (txGetPixel (i, j, fon) != RGB (0, 0, 0))
                 {
                 wall = true;
                 break;
@@ -161,8 +165,87 @@ void PacMan::Move (HDC fon)
         x = oldx;
         y = oldy;
         }
+    if (x - r <= 2) x = 958 - r;
+    if (x + r >= 959) x = 3 + r;
     }
 
+//-------------------------------------------------------------
+
+void PacMan::Draw ()
+    {
+    txSetColor (color);
+    txSetFillColor (fillcolor);
+
+    txCircle (x, y, r);
+    mouth_open ++;
+    if (mouth_open < 5)
+        {
+        if (direction == 1)
+            {
+            txSetFillColor (TX_BLACK);
+            txSetColor (TX_BLACK);
+            POINT mouth[] = {{x, y}, {x - r,  y - r}, {x - r,  y + r},{x, y}};
+            txPolygon (mouth, 4);
+            }
+        if (direction == 2)
+            {
+            txSetFillColor (TX_BLACK);
+            txSetColor (TX_BLACK);
+            POINT mouth[] = {{x, y}, {x + r,  y + r}, {x + r,  y - r},{x, y}};
+            txPolygon (mouth, 4);
+            }
+        if (direction == 3)
+            {
+            txSetFillColor (TX_BLACK);
+            txSetColor (TX_BLACK);
+            POINT mouth[] = {{x, y}, {x - r,  y - r}, {x + r,  y - r},{x, y}};
+            txPolygon (mouth, 4);
+            }
+        if (direction == 4)
+            {
+            txSetFillColor (TX_BLACK);
+            txSetColor (TX_BLACK);
+            POINT mouth[] = {{x, y}, {x - r,  y + r}, {x + r,  y + r},{x, y}};
+            txPolygon (mouth, 4);
+            }
+        }
+    if (mouth_open > 10) mouth_open = 0;
+    }
+
+//-------------------------------------------------------------
+
+void Enemy::Draw (HDC enemy)
+    {
+    txBitBlt  (txDC(), x, y, 40, 40, enemy, 0, 0);
+    }
+
+void Enemy::Move (HDC fon)
+    {
+    int oldx = x;
+    int oldy = y;
+
+    if (direction == 1) x -= 1;
+    if (direction == 2) x += 1;
+    if (direction == 3) y -= 1;
+    if (direction == 4) y += 1;
+
+    bool wall = false; //find a wall
+
+    if (txGetPixel (x, y, fon) != RGB (0, 0, 0)) wall = true;
+    if (txGetPixel (x + 40, y, fon) != RGB (0, 0, 0)) wall = true;
+    if (txGetPixel (x, y + 40, fon) != RGB (0, 0, 0)) wall = true;
+
+    if (wall)
+        {
+        x = oldx;
+        y = oldy;
+        direction = rand() % 4 + 1;
+        }
+    if (x <= 2) x = 958;
+    if (x >= 959) x = 3;
+    }
+
+//-------------------------------------------------------------
 //-------------------------------------------------------------
 
 void ControlPacMan (struct PacMan* pacman, struct ControlType player)
@@ -187,59 +270,18 @@ void Dot::Draw ()
 
 //-------------------------------------------------------------
 
-void PacMan::Draw ()
-    {
-    txSetColor (color, 2);
-    txSetFillColor (fillcolor);
-
-    txCircle (x, y, r);
-    txSleep(20);
-
-    if (direction == 1)
-        {
-        txSetFillColor (TX_BLACK);
-        txSetColor (TX_BLACK);
-        POINT mouth[] = {{x, y}, {x - r,  y - r}, {x - r,  y + r},{x, y}};
-        txPolygon (mouth, 4);
-        }
-    if (direction == 2)
-        {
-        txSetFillColor (TX_BLACK);
-        txSetColor (TX_BLACK);
-        POINT mouth[] = {{x, y}, {x + r,  y + r}, {x + r,  y - r},{x, y}};
-        txPolygon (mouth, 4);
-        }
-    if (direction == 3)
-        {
-        txSetFillColor (TX_BLACK);
-        txSetColor (TX_BLACK);
-        POINT mouth[] = {{x, y}, {x - r,  y - r}, {x + r,  y - r},{x, y}};
-        txPolygon (mouth, 4);
-        }
-    if (direction == 4)
-        {
-        txSetFillColor (TX_BLACK);
-        txSetColor (TX_BLACK);
-        POINT mouth[] = {{x, y}, {x - r,  y + r}, {x + r,  y + r},{x, y}};
-        txPolygon (mouth, 4);
-        }
-    txSleep(10);
-    }
-
-//-------------------------------------------------------------
-
 void ScoreDraw (int score)
     {
     txBegin ();
     txSetColor (TX_GREEN);
     txSelectFont ("TimesNewRoman", 40);
-    char str[12] = "";
-    sprintf (str, "SCORE : %d", score);
+    char str[15] = "";
+    sprintf (str, "SCORE: %d", score);
 
     int centerX = txGetExtentX()/2;
 
-    int textSizeX = txGetTextExtentX ("------------"),
-        textSizeY = txGetTextExtentY ("------------");
+    int textSizeX = txGetTextExtentX ("---------------"),
+        textSizeY = txGetTextExtentY ("---------------");
 
     txSetFillColor (TX_BLACK);
     txRectangle (centerX - textSizeX, 0,
@@ -257,7 +299,7 @@ void Collision (struct PacMan* pacman, struct Enemy* enemy)
 
 //-------------------------------------------------------------
 
-void EatDots       (struct PacMan* pacman, struct Dot* dot)
+void EatDots (struct PacMan* pacman, struct Dot* dot)
     {
     }
 
@@ -265,5 +307,14 @@ void EatDots       (struct PacMan* pacman, struct Dot* dot)
 
 void LivesDraw (int lives)
     {
+    for (int live = 1; live <= lives; live++)
+        {
+        int r = 10;
+        int dist = 50;
 
+        txSetColor (TX_YELLOW);
+        txSetFillColor (TX_YELLOW);
+
+        txCircle (20 + dist*live, 580, r);
+        }
     }
