@@ -94,10 +94,10 @@ void Game ()
     HDC enemy4_look = txLoadImage ("images\\enemy4.bmp");
 
     PacMan pacman = { 250, 300, 20, TX_YELLOW, TX_YELLOW, 3, 1 };
-    Enemy  enemy1 = { 460, 280, 20, 1 };
-    Enemy  enemy2 = { 460, 280, 20, 3 };
-    Enemy  enemy3 = { 460, 280, 20, 3 };
-    Enemy  enemy4 = { 460, 280, 20, 3 };
+    Enemy  enemy1 = { 480, 300, 20, 1 };
+    Enemy  enemy2 = { 480, 300, 20, 3 };
+    Enemy  enemy3 = { 480, 300, 20, 3 };
+    Enemy  enemy4 = { 480, 300, 20, 3 };
 
     // array of dots
     Dot Dot1 = {  50, 100, 10, true, TX_LIGHTRED, TX_RED };
@@ -256,7 +256,7 @@ void PacMan::Move (HDC fon)
 
 void Enemy::Draw (HDC enemy)
     {
-    txBitBlt  (txDC(), x, y, 2*r, 2*r, enemy, 0, 0);
+    txBitBlt  (txDC(), x - r, y - r, 2*r, 2*r, enemy, 0, 0);
     }
 
 //-------------------------------------------------------------
@@ -273,11 +273,11 @@ void Enemy::Move (HDC fon, int time)
 
     bool wall = false; //find a wall
 
-    for (int i = x; i <= x + 2*r; i += 5)
+    for (int dx = x - r; dx <= x + r; dx += 5)
         {
-        for (int j = y; j <= y + 2*r; j += 5)
+        for (int dy = y - r; dy <= y + r; dy += 5)
             {
-            if (txGetPixel (i, j, fon) != RGB (0, 0, 0))
+            if (txGetPixel (dx, dy, fon) != RGB (0, 0, 0))
                 {
                 wall = true;
                 break;
@@ -350,8 +350,8 @@ void Collision (struct PacMan* pacman, struct Enemy* enemy)
     {
     bool touch = false;
 
-    double d = sqrt((pacman -> x - (enemy -> x + enemy -> r))*(pacman -> x - (enemy -> x + enemy -> r)) +
-                    (pacman -> y - (enemy -> y + enemy -> r))*(pacman -> y - (enemy -> y + enemy -> r)));
+    double d = sqrt((pacman -> x - enemy -> x)*(pacman -> x - enemy -> x) +
+                    (pacman -> y - enemy -> y)*(pacman -> y - enemy -> y));
 
     if (d < pacman -> r + enemy -> r)
         {
@@ -363,8 +363,8 @@ void Collision (struct PacMan* pacman, struct Enemy* enemy)
         {
         txPlaySound ("sounds/die.wav");
 
-        enemy -> x = 460;
-        enemy -> y = 280;
+        enemy -> x = 480;
+        enemy -> y = 300;
 
         pacman -> x = 250;
         pacman -> y = 300;

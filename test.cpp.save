@@ -1,0 +1,33 @@
+#include "TXLib.h"
+
+int main()
+    {
+    txCreateWindow (960, 600);
+
+    HDC fon  = txLoadImage ("images\\map.bmp");
+    
+
+    HDC pacman  = txLoadImage ("images\\sprite.bmp");
+
+    int sizeX = txGetExtentX (pacman)/16,
+        sizeY = txGetExtentY (pacman)/16;
+    
+    int t = 1;
+    int nanim = 0;    
+    while (true)
+        {
+        txBitBlt  (txDC(), 0, 0, 0, 0, fon, 0, 0);
+        txTransparentBlt (txDC(), 0, 0, sizeX, sizeY, pac, nanim*sizeX, (t%5)*sizeY);
+        
+        
+        if (txGetAsyncKeyState (VK_F1)) pacman -> nanim = 1;
+        if (txGetAsyncKeyState (F2)) pacman -> nanim = 2;
+        if (txGetAsyncKeyState (F3)) pacman -> nanim = 3;
+        
+        t++;
+        }
+    txDeleteDC (fon);
+    txDeleteDC (pacman);
+    
+    return 0;
+    }

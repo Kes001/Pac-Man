@@ -1,5 +1,9 @@
 #include "TXLib.h"
 
+//const HDC SPRITES  = txLoadImage ("images\\sprite.bmp");
+//const SIZEX = txGetExtentX (sprites)/16,
+//      SIZEY = txGetExtentY (sprites)/16;
+
 struct Dot
     {
     int x, y;
@@ -17,13 +21,10 @@ struct PacMan
     int x, y;
     int r;
 
-    COLORREF color;
-    COLORREF fillcolor;
-
     int lives;
     int direction;
 
-    void Draw (int time);
+    void Draw (HDC pacman, int time, int sizeX, int sizeY);
     void Move (HDC fon);
     void LivesDraw ();
     };
@@ -34,7 +35,7 @@ struct Enemy
     int r;
     int direction;
 
-    void Draw (HDC enemy);
+    void Draw (HDC enemy, int time, int sizeX, int sizeY, int number);
     void Move (HDC fon, int time);
     };
 
@@ -48,7 +49,7 @@ void Game ();
 void GameOver ();
 void Win ();
 
-void Collision     (struct PacMan* pacman, struct Enemy* enemy);
+void Collision     (struct PacMan* pacman, struct Enemy* enemy, int sizeX, int sizeY);
 void EatDots       (struct PacMan pacman, struct Dot* dot, int* score);
 void ControlPacMan (struct PacMan* pacman, struct ControlType player);
 void ScoreDraw     (int score);
@@ -61,7 +62,7 @@ int main()
     {
     txCreateWindow (960, 600);
 
-    StartGame ();
+    //StartGame ();
     Game ();
 
     return 0;
@@ -87,17 +88,19 @@ void StartGame ()
 
 void Game ()
     {
-    HDC fon  = txLoadImage ("images\\map.bmp");
-    HDC enemy1_look = txLoadImage ("images\\enemy1.bmp");
-    HDC enemy2_look = txLoadImage ("images\\enemy2.bmp");
-    HDC enemy3_look = txLoadImage ("images\\enemy3.bmp");
-    HDC enemy4_look = txLoadImage ("images\\enemy4.bmp");
+    //HDC sprites  = txLoadImage ("images\\sprite.bmp");
 
-    PacMan pacman = { 250, 300, 20, TX_YELLOW, TX_YELLOW, 3, 1 };
-    Enemy  enemy1 = { 480, 300, 20, 1 };
-    Enemy  enemy2 = { 460, 280, 20, 3 };
-    Enemy  enemy3 = { 460, 280, 20, 3 };
-    Enemy  enemy4 = { 460, 280, 20, 3 };
+    //int sizeX = txGetExtentX (sprites)/16,
+    //    sizeY = txGetExtentY (sprites)/16;
+
+    HDC fon  = txLoadImage ("images\\map.bmp");
+
+    PacMan pacman = { 250, 300, 20, 3, 1 };
+
+    Enemy  enemy1 = { 480, 300, 20, 3 };
+    Enemy  enemy2 = { 480, 300, 20, 3 };
+    Enemy  enemy3 = { 480, 300, 20, 3 };
+    Enemy  enemy4 = { 480, 300, 20, 3 };
 
     // array of dots
     Dot Dot1 = {  50, 100, 10, true, TX_LIGHTRED, TX_RED };
@@ -126,16 +129,17 @@ void Game ()
             Dot2.Draw ();
             Dot3.Draw ();
 
-            pacman.Draw (time);
-            enemy1.Draw (enemy1_look);//loop for all enemies
-            enemy2.Draw (enemy2_look);
-            enemy3.Draw (enemy3_look);
-            enemy4.Draw (enemy4_look);
+            pacman.Draw (sprites, time, sizeX, sizeY);
 
-            Collision (&pacman, &enemy1);//loop for all enemies
-            Collision (&pacman, &enemy2);
-            Collision (&pacman, &enemy3);
-            Collision (&pacman, &enemy4);
+            enemy1.Draw (sprites, time, sizeX, sizeY, 12);//loop for all enemies
+            enemy2.Draw (sprites, time, sizeX, sizeY, 13);
+            enemy3.Draw (sprites, time, sizeX, sizeY, 14);
+            enemy4.Draw (sprites, time, sizeX, sizeY, 15);
+
+            Collision (&pacman, &enemy1, sizeX, sizeY);//loop for all enemies
+            Collision (&pacman, &enemy2, sizeX, sizeY);
+            Collision (&pacman, &enemy3, sizeX, sizeY);
+            Collision (&pacman, &enemy4, sizeX, sizeY);
 
             ControlPacMan (&pacman, player);
 
@@ -153,22 +157,20 @@ void Game ()
             EatDots (pacman, &Dot3, &score);
 
             txEnd ();
+            txSleep(5);
 
-            if (time > 500) time = 0;
+            if (time > 300) time = 0;
             if (score == 30) win = true;
             }
         ControlPacMan (&pacman, player);
         }
     txDeleteDC (fon);
-    txDeleteDC (enemy1_look);
-    txDeleteDC (enemy2_look);
-    txDeleteDC (enemy3_look);
-    txDeleteDC (enemy4_look);
+    txDeleteDC (sprites);
     if (win) Win();
     else     GameOver();
     }
 
-//------------------------------------------------- pacman -> direction = 4------------
+//-------------------------------------------------------------
 
 double DotDistance (struct PacMan pacman, struct Dot dot)
     {
@@ -177,43 +179,23 @@ double DotDistance (struct PacMan pacman, struct Dot dot)
 
 //-------------------------------------------------------------
 
-void PacMan::Draw (int time)
+void PacMan::Draw (HDC pacman, int time, int sizeX, int sizeY)
     {
-    txSetColor (color);
-    txSetFillColor (fillcolor);
-
-    txCircle (x, y, r);
-    time ++;
-    if (time%10 < 5)
+    if (direction == 1)
         {
-        if (direction == 1)
-            {
-            txSetFillColor (TX_BLACK);
-            txSetColor (TX_BLACK);
-            POINT mouth[] = {{x, y}, {x - r,  y - r}, {x - r,  y + r},{x, y}};
-            txPolygon (mouth, 4);
-            }
-        if (direction == 2)
-            {
-            txSetFillColor (TX_BLACK);
-            txSetColor (TX_BLACK);
-            POINT mouth[] = {{x, y}, {x + r,  y + r}, {x + r,  y - r},{x, y}};
-            txPolygon (mouth, 4);
-            }
-        if (direction == 3)
-            {
-            txSetFillColor (TX_BLACK);
-            txSetColor (TX_BLACK);
-            POINT mouth[] = {{x, y}, {x - r,  y - r}, {x + r,  y - r},{x, y}};
-            txPolygon (mouth, 4);
-            }
-        if (direction == 4)
-            {
-            txSetFillColor (TX_BLACK);
-            txSetColor (TX_BLACK);
-            POINT mouth[] = {{x, y}, {x - r,  y + r}, {x + r,  y + r},{x, y}};
-            txPolygon (mouth, 4);
-            }
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, pacman, 9*sizeX, (time%5)*sizeY);
+        }
+    if (direction == 2)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, pacman, 10*sizeX, (time%5)*sizeY);
+        }
+    if (direction == 3)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, pacman, 9*sizeX, (time%5 + 4)*sizeY);
+        }
+    if (direction == 4)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, pacman, 10*sizeX, (time%5 + 4)*sizeY);
         }
     }
 
@@ -254,9 +236,24 @@ void PacMan::Move (HDC fon)
 
 //-------------------------------------------------------------
 
-void Enemy::Draw (HDC enemy)
+void Enemy::Draw (HDC enemy, int time, int sizeX, int sizeY, int number)
     {
-    txBitBlt  (txDC(), x - r, y - r, r, r, enemy, 0, 0);
+    if (direction == 1)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, enemy, number*sizeX, (time%2 + 4)*sizeY);
+        }
+    if (direction == 2)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, enemy, number*sizeX, (time%2)*sizeY);
+        }
+    if (direction == 3)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, enemy, number*sizeX, (time%2 + 6)*sizeY);
+        }
+    if (direction == 4)
+        {
+        txTransparentBlt (txDC(), x - r, y - r, sizeX, sizeY, enemy, number*sizeX, (time%2 + 2)*sizeY);
+        }
     }
 
 //-------------------------------------------------------------
@@ -295,7 +292,7 @@ void Enemy::Move (HDC fon, int time)
     if (x <= 2) x = 958;
     if (x >= 959) x = 3;
 
-    if (time == 500) direction = rand() % 4 + 1;
+    if (time == 300) direction = rand() % 4 + 1;
     }
 
 //-------------------------------------------------------------
@@ -346,12 +343,12 @@ void ScoreDraw (int score)
 
 //-------------------------------------------------------------
 
-void Collision (struct PacMan* pacman, struct Enemy* enemy)
+void Collision (struct PacMan* pacman, struct Enemy* enemy, int sizeX, int sizeY)
     {
     bool touch = false;
 
-    double d = sqrt((pacman -> x - enemy -> x)*(pacman -> x - enemy -> x)) +
-                    (pacman -> y - enemy -> y)*(pacman -> y - enemy -> y)));
+    double d = sqrt((pacman -> x - enemy -> x)*(pacman -> x - enemy -> x) +
+                    (pacman -> y - enemy -> y)*(pacman -> y - enemy -> y));
 
     if (d < pacman -> r + enemy -> r)
         {
@@ -363,16 +360,22 @@ void Collision (struct PacMan* pacman, struct Enemy* enemy)
         {
         txPlaySound ("sounds/die.wav");
 
-        enemy -> x = 460;
-        enemy -> y = 280;
+        for (int cadr = 0; cadr <= 13; cadr++)
+            {
+            txTransparentBlt (txDC(), pacman -> x - pacman ->r, pacman -> y - pacman -> r,
+                               sizeX, sizeY, sprites, 8*sizeX, cadr*sizeY);
+            txSleep(50);
+            }
+
+        enemy -> x = 480;
+        enemy -> y = 300;
+        enemy -> direction = 3;
 
         pacman -> x = 250;
         pacman -> y = 300;
 
         txSleep(20);
         }
-
-
     }
 
 //-------------------------------------------------------------
