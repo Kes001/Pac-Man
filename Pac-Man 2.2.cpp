@@ -76,7 +76,7 @@ int main()
     {
     txCreateWindow (960, 600);
 
-    //StartGame ();
+    StartGame ();
     Game ();
 
     return 0;
@@ -103,22 +103,33 @@ void StartGame ()
 void Game ()
     {
     HDC fon  = txLoadImage ("images\\map.bmp");
+    HDC hide_fon  = txLoadImage ("images\\hide_map.bmp");
 
     PacMan pacman = { 250, 300, 20, 3, 1 };
 
-    //Enemy enemies[4] = {};
+    Enemy enemies[4] = {};
+    Dot    dots[400] = {};
 
-    Enemy  enemy1 = { 480, 300, 20, 3, 1 };
-    Enemy  enemy2 = { 480, 300, 20, 3, 1 };
-    Enemy  enemy3 = { 480, 300, 20, 3, 1 };
-    Enemy  enemy4 = { 480, 300, 20, 3, 1 };
+    for (int i = 0; i < 4; i++)
+        {
+        enemies[i] = { 480, 300, 20, 3, 1 };
+        }
 
-    // array of dots
-    Dot Dot1 = {  50, 100, 10, true, TX_LIGHTRED, TX_RED };
-    Dot Dot2 = { 100, 150, 10, true, TX_LIGHTRED, TX_RED };
-    Dot Dot3 = { 200, 300, 10, true, TX_LIGHTRED, TX_RED };
+    int n = 0;
+    bool visibl = false;
 
-    Bonus cherry = { 650, 300, 20, true, false, 0 };
+    for (int x = 22; x < 960; x += 47)
+        {
+        for (int y = 14; y < 600; y += 33)
+            {
+            visibl = false;
+            if (txGetPixel (x, y, hide_fon) != RGB (0, 160, 0)) visibl = true;
+            dots[n] = { x, y, 4, visibl, TX_LIGHTRED, TX_RED };
+            n++;
+            }
+        }
+
+    Bonus cherry = { 675, 300, 20, true, false, 0 };
 
     ControlType player = {VK_RIGHT, VK_LEFT, VK_UP, VK_DOWN};
 
@@ -138,43 +149,29 @@ void Game ()
             ScoreDraw (score);
             pacman.LivesDraw ();
 
-            Dot1.Draw ();//loop for all dots
-            Dot2.Draw ();
-            Dot3.Draw ();
+            for (int i = 0; i < 400; i++)
+                {
+                dots[i].Draw ();
+                EatDots (pacman, &dots[i], &score);
+                }
 
             cherry.Draw (0);
 
             pacman.Draw (time);
-
-            enemy1.Draw (time, 12);//loop for all enemies
-            enemy2.Draw (time, 13);
-            enemy3.Draw (time, 14);
-            enemy4.Draw (time, 15);
-
-            Collision (&pacman, &enemy1, &score);//loop for all enemies
-            Collision (&pacman, &enemy2, &score);
-            Collision (&pacman, &enemy3, &score);
-            Collision (&pacman, &enemy4, &score);
+            pacman.Move (fon);
 
             ControlPacMan (&pacman, player);
 
-            pacman.Move (fon);
-
-            enemy1.Move (fon, time);
-            enemy2.Move (fon, time);
-            enemy3.Move (fon, time);
-            enemy4.Move (fon, time);
-
-            //loop for all dots EatDots (struct PacMan pacman, struct Dot* dot)
-            //need array of dots
-
-            EatDots (pacman, &Dot1, &score);
-            EatDots (pacman, &Dot2, &score);
-            EatDots (pacman, &Dot3, &score);
+            for (int i = 0; i < 4; i++)//loop for all enemies
+                {
+                enemies[i].Draw (time, 12 + i);
+                enemies[i].Move (fon, time);
+                Collision (&pacman, &enemies[i], &score);
+                }
 
             EatBonus (pacman, &cherry, &score);
-            //printf("bonus = %d, bonus_time=%d\n ",cherry.taken, cherry.bonus_time);
-            if (time > 300)
+
+            if (time > 1000)
                 {
                 time = 0;
                 cherry.visible = true;
@@ -183,30 +180,31 @@ void Game ()
             if (cherry.taken)
                 {
                 cherry.bonus_time++;
-                enemy1.form = 0;
-                enemy2.form = 0;
-                enemy3.form = 0;
-                enemy4.form = 0;
+                for (int i = 0; i < 4; i++)//loop for all enemies
+                    {
+                    enemies[i].form = 0;
+                    }
                 }
 
-            if (cherry.bonus_time == 150)
+            if (cherry.bonus_time == 250)
                 {
-                enemy1.form = 1;
-                enemy2.form = 1;
-                enemy3.form = 1;
-                enemy4.form = 1;
+                for (int i = 0; i < 4; i++)//loop for all enemies
+                    {
+                    enemies[i].form = 1;
+                    }
                 cherry.bonus_time = 0;
                 cherry.taken = false;
                 }
 
-            if (score == 30) win = true;
+            if (score == 2000) win = true;
 
             txEnd ();
-            txSleep();
+            txSleep(5);
             }
         ControlPacMan (&pacman, player);
         }
     txDeleteDC (fon);
+    txDeleteDC (hide_fon);
     txDeleteDC (SPRITES);
     if (win) Win();
     else     GameOver();
@@ -338,7 +336,7 @@ void Enemy::Move (HDC fon, int time)
     if (x <= 2) x = 958;
     if (x >= 959) x = 3;
 
-    if (time == 300) direction = rand() % 4 + 1;
+    if (time == 500) direction = rand() % 4 + 1;
     }
 
 //-------------------------------------------------------------
