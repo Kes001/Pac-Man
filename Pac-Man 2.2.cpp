@@ -12,6 +12,7 @@ struct Bonus
     bool visible;
     bool taken;
     int bonus_time;
+    int bonus_view;
 
     void Draw (int number);
     };
@@ -50,6 +51,7 @@ struct Enemy
 
     void Draw (int time, int number);
     void Move (HDC fon, int time);
+    void ChangeForm ();
     };
 
 struct ControlType
@@ -63,7 +65,7 @@ void GameOver ();
 void Win ();
 
 void Collision     (struct PacMan* pacman, struct Enemy* enemy, int* score);
-void EatDots       (struct PacMan  pacman, struct Dot* dot, int* score);
+void EatDots       (struct PacMan  pacman, struct Dot* dot, int* score, int* n_dots);
 void EatBonus      (struct PacMan  pacman, struct Bonus* bonus, int* score);
 void ControlPacMan (struct PacMan* pacman, struct ControlType player);
 void ScoreDraw     (int score);
@@ -108,14 +110,14 @@ void Game ()
     PacMan pacman = { 250, 300, 20, 3, 1 };
 
     Enemy enemies[4] = {};
-    Dot    dots[400] = {};
+    Dot    dots[162] = {};
 
     for (int i = 0; i < 4; i++)
         {
         enemies[i] = { 480, 300, 20, 3, 1 };
         }
 
-    int n = 0;
+    int n_dots = 0;
     bool visibl = false;
 
     for (int x = 22; x < 960; x += 47)
@@ -123,13 +125,16 @@ void Game ()
         for (int y = 14; y < 600; y += 33)
             {
             visibl = false;
-            if (txGetPixel (x, y, hide_fon) != RGB (0, 160, 0)) visibl = true;
-            dots[n] = { x, y, 4, visibl, TX_LIGHTRED, TX_RED };
-            n++;
+            if (txGetPixel (x, y, hide_fon) != RGB (0, 160, 0))
+                {
+                visibl = true;
+                dots[n_dots] = { x, y, 4, visibl, TX_LIGHTRED, TX_RED };
+                n_dots++;
+                }
             }
         }
 
-    Bonus cherry = { 675, 300, 20, true, false, 0 };
+    Bonus cherry = { 675, 300, 20, true, false, 0, rand() % 7};
 
     ControlType player = {VK_RIGHT, VK_LEFT, VK_UP, VK_DOWN};
 
@@ -149,13 +154,13 @@ void Game ()
             ScoreDraw (score);
             pacman.LivesDraw ();
 
-            for (int i = 0; i < 400; i++)
+            for (int i = 0; i < 162; i++)
                 {
                 dots[i].Draw ();
-                EatDots (pacman, &dots[i], &score);
+                EatDots (pacman, &dots[i], &score, &n_dots);
                 }
 
-            cherry.Draw (0);
+            cherry.Draw (cherry.bonus_view);
 
             pacman.Draw (time);
             pacman.Move (fon);
@@ -180,6 +185,7 @@ void Game ()
             if (cherry.taken)
                 {
                 cherry.bonus_time++;
+
                 for (int i = 0; i < 4; i++)//loop for all enemies
                     {
                     enemies[i].form = 0;
@@ -194,12 +200,13 @@ void Game ()
                     }
                 cherry.bonus_time = 0;
                 cherry.taken = false;
+                cherry.bonus_view = rand() % 7;
                 }
 
-            if (score == 2000) win = true;
+            if (n_dots == 0) win = true;
 
             txEnd ();
-            txSleep(5);
+            //txSleep(0);
             }
         ControlPacMan (&pacman, player);
         }
@@ -208,13 +215,6 @@ void Game ()
     txDeleteDC (SPRITES);
     if (win) Win();
     else     GameOver();
-    }
-
-//-------------------------------------------------------------
-
-double DotDistance (struct PacMan pacman, struct Dot dot)
-    {
-    return sqrt ((pacman.x - dot.x)*(pacman.x - dot.x) + (pacman.y - dot.y)*(pacman.y - dot.y));
     }
 
 //-------------------------------------------------------------
@@ -341,52 +341,6 @@ void Enemy::Move (HDC fon, int time)
 
 //-------------------------------------------------------------
 
-void ControlPacMan (struct PacMan* pacman, struct ControlType player)
-    {
-    if (txGetAsyncKeyState (player.key_right)) pacman -> direction = 1;
-    if (txGetAsyncKeyState (player.key_left))  pacman -> direction = 2;
-    if (txGetAsyncKeyState (player.key_up))    pacman -> direction = 3;
-    if (txGetAsyncKeyState (player.key_down))  pacman -> direction = 4;
-
-    if (txGetAsyncKeyState (VK_SPACE)) pacman -> direction = 0;
-    }
-
-//-------------------------------------------------------------
-
-void Dot::Draw ()
-    {
-    txBegin ();
-    txSetColor (color, 2);
-    txSetFillColor (fillcolor);
-
-    if (visible) txCircle (x, y, r);
-    txEnd ();
-    }
-
-//-------------------------------------------------------------
-
-void ScoreDraw (int score)
-    {
-    txBegin ();
-    txSetColor (TX_GREEN);
-    txSelectFont ("TimesNewRoman", 40);
-    char str[15] = "";
-    sprintf (str, "SCORE: %d", score);
-
-    int centerX = txGetExtentX()/2;
-
-    int textSizeX = txGetTextExtentX ("---------------"),
-        textSizeY = txGetTextExtentY ("---------------");
-
-    txSetFillColor (TX_BLACK);
-    txRectangle (centerX - textSizeX, 0,
-                 centerX + textSizeX, textSizeY);
-    txTextOut   (centerX - textSizeX/2, 0, str);
-    txEnd ();
-    }
-
-//-------------------------------------------------------------
-
 void Collision (struct PacMan* pacman, struct Enemy* enemy, int *score)
     {
     bool touch = false;
@@ -405,7 +359,9 @@ void Collision (struct PacMan* pacman, struct Enemy* enemy, int *score)
             }
         else
             {
-            *score += 30;
+            txPlaySound ("sounds/pacman_eatghost.wav");
+
+            *score += 50;
             enemy -> x = 480;
             enemy -> y = 300;
             enemy -> direction = 3;
@@ -436,21 +392,76 @@ void Collision (struct PacMan* pacman, struct Enemy* enemy, int *score)
 
 //-------------------------------------------------------------
 
-void EatDots (struct PacMan pacman, struct Dot* dot, int* score)
+void ControlPacMan (struct PacMan* pacman, struct ControlType player)
+    {
+    if (txGetAsyncKeyState (player.key_right)) pacman -> direction = 1;
+    if (txGetAsyncKeyState (player.key_left))  pacman -> direction = 2;
+    if (txGetAsyncKeyState (player.key_up))    pacman -> direction = 3;
+    if (txGetAsyncKeyState (player.key_down))  pacman -> direction = 4;
+
+    if (txGetAsyncKeyState (VK_SPACE)) pacman -> direction = 0;
+    }
+
+//-------------------------------------------------------------
+
+void Dot::Draw ()
+    {
+    txBegin ();
+    txSetColor (color, 2);
+    txSetFillColor (fillcolor);
+
+    if (visible) txCircle (x, y, r);
+    txEnd ();
+    }
+
+//-------------------------------------------------------------
+
+double DotDistance (struct PacMan pacman, struct Dot dot)
+    {
+    return sqrt ((pacman.x - dot.x)*(pacman.x - dot.x) + (pacman.y - dot.y)*(pacman.y - dot.y));
+    }
+
+//-------------------------------------------------------------
+
+void EatDots (struct PacMan pacman, struct Dot* dot, int* score, int* n_dots)
     {
     if (DotDistance (pacman, *dot) <= pacman.r + dot -> r && dot -> visible)
             {
             dot -> visible = false;
-            *score += 10;
+
             txPlaySound ("sounds/move.wav");
+            *n_dots -= 1;
+            *score += 10;
             }
+    }
+
+//-------------------------------------------------------------
+
+void ScoreDraw (int score)
+    {
+    txBegin ();
+    txSetColor (TX_GREEN);
+    txSelectFont ("TimesNewRoman", 40);
+    char str[15] = "";
+    sprintf (str, "SCORE: %d", score);
+
+    int centerX = txGetExtentX()/2;
+
+    int textSizeX = txGetTextExtentX ("---------------"),
+        textSizeY = txGetTextExtentY ("---------------");
+
+    txSetFillColor (TX_BLACK);
+    txRectangle (centerX - textSizeX, 0,
+                 centerX + textSizeX, textSizeY);
+    txTextOut   (centerX - textSizeX/2, 0, str);
+    txEnd ();
     }
 
 //-------------------------------------------------------------
 
 void Bonus::Draw (int number)
     {
-    if (visible == 1)
+    if (visible)
         {
         txTransparentBlt (txDC(), x - r, y - r, SIZEX, SIZEY, SPRITES, 6*SIZEX, number*SIZEY);
         }
@@ -463,13 +474,14 @@ void EatBonus (struct PacMan  pacman, struct Bonus* bonus, int* score)
     double d = sqrt((pacman.x - bonus -> x)*(pacman.x - bonus -> x) +
                     (pacman.y - bonus -> y)*(pacman.y - bonus -> y));
 
-    if (d < pacman.r + bonus -> r)
+    if (d < pacman.r + bonus -> r && bonus -> visible)
         {
+        score += 20;
+
         bonus -> visible = false;
         bonus -> taken  = true;
 
-        txPlaySound ("sounds/move.wav");
-        if (bonus -> visible) *score += 20;
+        txPlaySound ("sounds/pacman_intermission.wav");
         }
     }
 
